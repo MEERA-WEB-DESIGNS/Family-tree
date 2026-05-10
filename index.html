@@ -255,28 +255,197 @@
         </div>
     </div>
 
+  <style>
+        :root {
+            --neon: #bf00ff;
+            --neon-glow: #e056ff;
+            --bg: #050005;
+            --glass: rgba(191, 0, 255, 0.1);
+            --line-weight: 2px;
+        }
+
+        /* FIXED: Added touch-action: none to allow moving the tree on mobile */
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            touch-action: none; 
+        }
+
+        body {
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(60, 0, 100, 0.2) 0%, transparent 80%),
+                linear-gradient(rgba(191, 0, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(191, 0, 255, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            color: #fff; font-family: 'Rajdhani', sans-serif;
+            height: 100vh; width: 100vw; overflow: hidden; cursor: grab;
+        }
+        
+        /* ... existing header and controls styles ... */
+        header { position: fixed; top: 20px; width: 100%; text-align: center; z-index: 100; pointer-events: none; }
+        h1 { font-family: 'Orbitron', sans-serif; font-size: 1.4rem; letter-spacing: 10px; text-shadow: 0 0 15px var(--neon); text-transform: uppercase; }
+
+        .controls {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 15px; z-index: 1000;
+            background: rgba(0,0,0,0.85); padding: 10px 25px;
+            border-radius: 5px; border: 1px solid var(--neon); backdrop-filter: blur(15px);
+        }
+        .btn { background: none; border: none; color: #fff; font-family: 'Orbitron'; font-size: 0.9rem; cursor: pointer; transition: 0.3s; }
+        .btn:hover { color: var(--neon-glow); text-shadow: 0 0 10px var(--neon); }
+
+        #viewport { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        #canvas { transform-origin: center center; display: flex; flex-direction: column; align-items: center; padding: 6000px; }
+
+        .tree-system, .tree-system ul { display: flex; justify-content: center; position: relative; }
+        .tree-system ul { padding-top: 60px; }
+        .tree-system li { list-style-type: none; position: relative; padding: 60px 20px 0 20px; display: flex; flex-direction: column; align-items: center; }
+
+        .tree-system li::before, .tree-system li::after {
+            content: ''; position: absolute; top: 0; right: 50%;
+            border-top: var(--line-weight) solid var(--neon); width: 50%; height: 60px;
+        }
+        .tree-system li::after { right: auto; left: 50%; border-left: var(--line-weight) solid var(--neon); }
+        .tree-system li:only-child::after, .tree-system li:only-child::before { display: none; }
+        .tree-system li:only-child { padding-top: 0; }
+        .tree-system li:first-child::before, .tree-system li:last-child::after { border: 0 none; }
+        
+        .tree-system ul::before {
+            content: ''; position: absolute; top: 0; left: 50%;
+            border-left: var(--line-weight) solid var(--neon); width: 0; height: 60px;
+            transform: translateX(-50%);
+        }
+
+        .node-pair { display: flex; gap: 12px; justify-content: center; align-items: center; position: relative; z-index: 10; margin-bottom: 5px; }
+        .node-pair::after { 
+            content: ""; position: absolute; width: 35px; height: var(--line-weight); 
+            background: var(--neon); top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: -1;
+        }
+
+        .person {
+            background: var(--glass); border: 1px solid var(--neon);
+            padding: 10px; min-width: 150px; border-radius: 3px; text-align: center;
+            backdrop-filter: blur(8px); transition: 0.3s;
+        }
+        .subject-node { border-color: #fff; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
+        .person h3 { font-size: 0.75rem; font-family: 'Orbitron'; letter-spacing: 1px; margin-bottom: 2px; }
+        .person p { font-size: 0.5rem; color: var(--neon-glow); text-transform: uppercase; opacity: 0.8; }
+        
+        .tag { font-family: 'Orbitron'; font-size: 0.55rem; color: var(--neon); letter-spacing: 3px; margin-bottom: 10px; opacity: 0.6; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Goated Bloodline</h1>
+    </header>
+
+    <div class="controls">
+        <button class="btn" onclick="adjustZoom(0.1)">+</button>
+        <button class="btn" onclick="resetView()">RESET</button>
+        <button class="btn" onclick="adjustZoom(-0.1)">-</button>
+    </div>
+
+    <div id="viewport">
+        <div id="canvas">
+           </div>
+    </div>
+
     <script>
         const canvas = document.getElementById('canvas');
         const viewport = document.getElementById('viewport');
-        let scale = 0.2; let pos = { top: 0, left: 0, x: 0, y: 0 };
+        let scale = 0.2; 
+        let pos = { top: 0, left: 0, x: 0, y: 0 };
         let isDragging = false;
+        let lastTouchDistance = 0;
 
         function updateTransform(animate = false) {
             canvas.style.transition = animate ? 'transform 0.2s ease-out' : 'none';
             canvas.style.transform = `translate(${pos.left}px, ${pos.top}px) scale(${scale})`;
         }
 
-        function adjustZoom(delta) { scale = Math.min(Math.max(0.05, scale + delta), 2); updateTransform(true); }
-        function resetView() { scale = 0.2; pos = { top: 0, left: 0 }; updateTransform(true); }
+        function adjustZoom(delta) { 
+            scale = Math.min(Math.max(0.05, scale + delta), 2); 
+            updateTransform(true); 
+        }
+        
+        function resetView() { 
+            scale = 0.2; 
+            pos = { top: 0, left: 0 }; 
+            updateTransform(true); 
+        }
 
-        viewport.addEventListener('mousedown', (e) => { isDragging = true; pos.x = e.clientX; pos.y = e.clientY; document.body.style.cursor = 'grabbing'; });
+        /* --- MOUSE CONTROLS --- */
+        viewport.addEventListener('mousedown', (e) => { 
+            isDragging = true; 
+            pos.x = e.clientX; 
+            pos.y = e.clientY; 
+            document.body.style.cursor = 'grabbing'; 
+        });
+
         window.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
-            pos.left += e.clientX - pos.x; pos.top += e.clientY - pos.y;
-            pos.x = e.clientX; pos.y = e.clientY; updateTransform(false);
+            pos.left += e.clientX - pos.x; 
+            pos.top += e.clientY - pos.y;
+            pos.x = e.clientX; 
+            pos.y = e.clientY; 
+            updateTransform(false);
         });
-        window.addEventListener('mouseup', () => { isDragging = false; document.body.style.cursor = 'grab'; });
-        viewport.addEventListener('wheel', (e) => { e.preventDefault(); adjustZoom(e.deltaY > 0 ? -0.05 : 0.05); }, { passive: false });
+
+        window.addEventListener('mouseup', () => { 
+            isDragging = false; 
+            document.body.style.cursor = 'grab'; 
+        });
+
+        /* --- MOBILE TOUCH CONTROLS --- */
+        viewport.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isDragging = true;
+                pos.x = e.touches[0].clientX;
+                pos.y = e.touches[0].clientY;
+            } else if (e.touches.length === 2) {
+                isDragging = false;
+                lastTouchDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+            }
+        }, { passive: false });
+
+        viewport.addEventListener('touchmove', (e) => {
+            e.preventDefault(); 
+
+            if (e.touches.length === 1 && isDragging) {
+                const touch = e.touches[0];
+                pos.left += (touch.clientX - pos.x);
+                pos.top += (touch.clientY - pos.y);
+                pos.x = touch.clientX;
+                pos.y = touch.clientY;
+                updateTransform(false);
+            } else if (e.touches.length === 2) {
+                const currentDistance = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                const delta = (currentDistance - lastTouchDistance) * 0.005;
+                scale = Math.min(Math.max(0.05, scale + delta), 2);
+                lastTouchDistance = currentDistance;
+                updateTransform(false);
+            }
+        }, { passive: false });
+
+        viewport.addEventListener('touchend', () => {
+            isDragging = false;
+            lastTouchDistance = 0;
+        });
+
+        viewport.addEventListener('wheel', (e) => { 
+            e.preventDefault(); 
+            adjustZoom(e.deltaY > 0 ? -0.05 : 0.05); 
+        }, { passive: false });
+
         updateTransform(false);
     </script>
 </body>
