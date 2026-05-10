@@ -1,1 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MASTER LINEAGE | Unified Archive</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon: #bf00ff;
+            --neon-glow: #e056ff;
+            --bg: #050005;
+            --glass: rgba(191, 0, 255, 0.1);
+            --line-weight: 2px;
+        }
 
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg);
+            background-image: 
+                radial-gradient(circle at 50% 50%, rgba(60, 0, 100, 0.2) 0%, transparent 80%),
+                linear-gradient(rgba(191, 0, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(191, 0, 255, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px;
+            color: #fff; font-family: 'Rajdhani', sans-serif;
+            height: 100vh; width: 100vw; overflow: hidden; cursor: grab;
+        }
+
+        header { position: fixed; top: 20px; width: 100%; text-align: center; z-index: 100; pointer-events: none; }
+        h1 { font-family: 'Orbitron', sans-serif; font-size: 1.4rem; letter-spacing: 10px; text-shadow: 0 0 15px var(--neon); text-transform: uppercase; }
+
+        .controls {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            display: flex; gap: 15px; z-index: 1000;
+            background: rgba(0,0,0,0.85); padding: 10px 25px;
+            border-radius: 5px; border: 1px solid var(--neon); backdrop-filter: blur(15px);
+        }
+        .btn { background: none; border: none; color: #fff; font-family: 'Orbitron'; font-size: 0.9rem; cursor: pointer; transition: 0.3s; }
+        .btn:hover { color: var(--neon-glow); text-shadow: 0 0 10px var(--neon); }
+
+        #viewport { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+        #canvas { transform-origin: center center; display: flex; flex-direction: column; align-items: center; padding: 6000px; }
+
+        .tree-system, .tree-system ul { display: flex; justify-content: center; position: relative; }
+        .tree-system ul { padding-top: 60px; }
+        .tree-system li { list-style-type: none; position: relative; padding: 60px 20px 0 20px; display: flex; flex-direction: column; align-items: center; }
+
+        .tree-system li::before, .tree-system li::after {
+            content: ''; position: absolute; top: 0; right: 50%;
+            border-top: var(--line-weight) solid var(--neon); width: 50%; height: 60px;
+        }
+        .tree-system li::after { right: auto; left: 50%; border-left: var(--line-weight) solid var(--neon); }
+        .tree-system li:only-child::after, .tree-system li:only-child::before { display: none; }
+        .tree-system li:only-child { padding-top: 0; }
+        .tree-system li:first-child::before, .tree-system li:last-child::after { border: 0 none; }
+        
+        .tree-system ul::before {
+            content: ''; position: absolute; top: 0; left: 50%;
+            border-left: var(--line-weight) solid var(--neon); width: 0; height: 60px;
+            transform: translateX(-50%);
+        }
+
+        .node-pair { display: flex; gap: 12px; justify-content: center; align-items: center; position: relative; z-index: 10; margin-bottom: 5px; }
+        .node-pair::after { 
+            content: ""; position: absolute; width: 35px; height: var(--line-weight); 
+            background: var(--neon); top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: -1;
+        }
+
+        .person {
+            background: var(--glass); border: 1px solid var(--neon);
+            padding: 10px; min-width: 150px; border-radius: 3px; text-align: center;
+            backdrop-filter: blur(8px); transition: 0.3s;
+        }
+        .subject-node { border-color: #fff; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
+        .person h3 { font-size: 0.75rem; font-family: 'Orbitron'; letter-spacing: 1px; margin-bottom: 2px; }
+        .person p { font-size: 0.5rem; color: var(--neon-glow); text-transform: uppercase; opacity: 0.8; }
+        
+        .tag { font-family: 'Orbitron'; font-size: 0.55rem; color: var(--neon); letter-spacing: 3px; margin-bottom: 10px; opacity: 0.6; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Goated Bloodline</h1>
+    </header>
+
+    <div class="controls">
+        <button class="btn" onclick="adjustZoom(0.1)">+</button>
+        <button class="btn" onclick="resetView()">RESET</button>
+        <button class="btn" onclick="adjustZoom(-0.1)">-</button>
+    </div>
+
+    <div id="viewport">
+        <div id="canvas">
+            <div class="tree-system">
+                <div style="display: flex; flex-direction: column; align-items: center;">
+                    
+                    <p class="tag">ANCESTRAL ORIGIN CORE</p>
+                    <div class="node-pair">
+                        <div class="person"><h3>Mrs. Musa</h3><p>G-G-Matriarch</p></div>
+                        <div class="person"><h3>Muhammad Musa</h3><p>G-G-Patriarch</p></div>
+                    </div>
+
+                    <ul>
+                        <li>
+                            <p class="tag">QASIM BRANCH</p>
+                            <div class="node-pair"><div class="person"><h3>Mrs. Qasim</h3><p>In-Law</p></div><div class="person"><h3>Ghulam Qasim</h3><p>G-Uncle</p></div></div>
+                            <ul>
+                                <li>
+                                    <div class="node-pair"><div class="person"><h3>Mrs. Safdar</h3><p>In-Law</p></div><div class="person"><h3>Q. M. Safdar</h3><p>Cousin</p></div></div>
+                                    <ul>
+                                        <li><div class="person"><h3>Abu Bakar</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>Anas</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>2 Daughters</h3><p>Cousins (Safdar's)</p></div></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <div class="node-pair"><div class="person"><h3>Mrs. Munawar</h3><p>In-Law</p></div><div class="person"><h3>Q. Munawar</h3><p>Cousin</p></div></div>
+                                    <ul>
+                                        <li><div class="person"><h3>Q. Mazhar</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>Q. Azhar</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>2 Daughters</h3><p>Cousins (Munawar's)</p></div></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <div class="node-pair"><div class="person"><h3>Mrs. Akhtar</h3><p>In-Law</p></div><div class="person"><h3>Q. Haji Akhtar</h3><p>Cousin</p></div></div>
+                                    <ul>
+                                        <li><div class="person"><h3>Taha</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>Muhammad</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>1 Daughter</h3><p>Cousin (Akhtar's)</p></div></li>
+                                    </ul>
+                                </li>
+                                <li>
+                                    <div class="node-pair"><div class="person"><h3>Mrs. Ashraf</h3><p>In-Law</p></div><div class="person"><h3>Q. Haji Ashraf</h3><p>Cousin</p></div></div>
+                                    <ul>
+                                        <li><div class="person"><h3>M. Ahtisham</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>Hassan</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>Mrs. Muhammad Hassan</h3><p>Cousin (Ashraf's Daughter)</p></div></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li>
+                            <p class="tag">YASIN BRANCH (CENTRAL HUB)</p>
+                            <div class="node-pair">
+                                <div style="display: flex; flex-direction: column; align-items: center;">
+                                    <p class="tag" style="margin-bottom: 5px;">MATERNAL ROOT (SIDDIQUE)</p>
+                                    <div class="node-pair">
+                                        <div class="person"><h3>Zareena Bibi</h3><p>Matriarch</p></div>
+                                        <div class="person"><h3>H. Siddique M.</h3><p>Patriarch</p></div>
+                                    </div>
+                                    <div style="height: 30px; border-left: 2px solid var(--neon);"></div>
+                                    <div class="node-pair"><div class="person"><h3>Rabia Basri</h3><p>G-Matriarch</p></div><div class="person"><h3>Q. Ghulam Yasin</h3><p>G-Patriarch</p></div></div>
+                                </div>
+                            </div>
+                            <ul>
+                                <li>
+                                    <div class="node-pair"><div class="person"><h3>Ayesha Siddique</h3><p>Mother</p></div><div class="person"><h3>Attaullah</h3><p>Father</p></div></div>
+                                    <ul>
+                                        <li>
+                                            <div class="node-pair"><div class="person subject-node"><h3>Shayan</h3><p>Subject Zero</p></div><div class="person"><h3>Ayesha Shayan</h3><p>Partner</p></div></div>
+                                            <p class="tag">TARIQ FAMILY ARCHIVE</p>
+                                            <ul>
+                                                <li>
+                                                    <div class="node-pair"><div class="person"><h3>Kulsoom Tariq</h3><p>In-Law</p></div><div class="person"><h3>Tariq Mahmood</h3><p>In-Law</p></div></div>
+                                                    <ul>
+                                                        <li><div class="person"><h3>Ayesha</h3><p>Partner</p></div></li>
+                                                        <li><div class="person"><h3>Zeeshan</h3><p>Relative</p></div></li>
+                                                        <li><div class="person"><h3>Usama</h3><p>Relative</p></div></li>
+                                                        <li><div class="person"><h3>Kinza</h3><p>Relative</p></div></li>
+                                                    </ul>
+                                                </li>
+                                            </ul>
+                                        </li>
+                                        <li><div class="person"><h3>Kashan</h3><p>Brother</p></div></li>
+                                        <li><div class="person"><h3>Alyan</h3><p>Brother</p></div></li>
+                                        <li><div class="person"><h3>Kainat</h3><p>Sister</p></div></li>
+                                    </ul>
+                                </li>
+
+                                <li>
+                                    <div class="node-pair"><div class="person"><h3>Sana</h3><p>Aunt</p></div><div class="person"><h3>Umar</h3><p>Uncle (In-Law)</p></div></div>
+                                    <p class="tag">SHABBIR IN-LAWS</p>
+                                    <ul>
+                                        <li><div class="person"><h3>3 Daughters</h3><p>Cousins (Shabbir's)</p></div></li>
+                                        <li><div class="node-pair"><div class="person"><h3>Mrs. Shabbir</h3><p>Matriarch</p></div><div class="person"><h3>Q. Ghulam Shabbir</h3><p>Patriarch</p></div></div></li>
+                                    </ul>
+                                </li>
+
+                                <li>
+                                    <div class="node-pair"><div class="person"><h3>Laiba</h3><p>Aunt</p></div><div class="person"><h3>Shahid</h3><p>Uncle (In-Law)</p></div></div>
+                                    <p class="tag">ASHRAF IN-LAWS</p>
+                                    <ul>
+                                        <li><div class="person"><h3>Amir</h3><p>Cousin (In-Law)</p></div></li>
+                                        <li><div class="person"><h3>2 Daughters</h3><p>Cousins (In-Law)</p></div></li>
+                                        <li><div class="node-pair"><div class="person"><h3>Mrs. Ashraf</h3><p>Matriarch</p></div><div class="person"><h3>M. Ashraf</h3><p>Patriarch</p></div></div></li>
+                                    </ul>
+<li>
+                                    <div class="person">
+                                        <h3>Rizwan</h3>
+                                        <p>Uncle (Paternal)</p>
+                                    </div>
+                                </li>
+
+                                <li>
+                                    <div class="node-pair"><div class="person"><h3>Mubashra</h3><p>Aunt (In-Law)</p></div><div class="person"><h3>Irfan</h3><p>Uncle</p></div></div>
+                                    <p class="tag">ANWAR IN-LAWS</p>
+                                    <ul>
+                                        <li><div class="person"><h3>Ayan</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>Hooria</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>Eman</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>Ibrahim</h3><p>Brother-in-Law</p></div></li>
+                                        <li><div class="person"><h3>Ismail</h3><p>Brother-in-Law</p></div></li>
+                                        <li><div class="person"><h3>Daughter 8</h3><p>Sister-in-Law</p></div></li>
+                                        <li><div class="node-pair"><div class="person"><h3>Mrs. Anwar</h3><p>Matriarch</p></div><div class="person"><h3>Anwar</h3><p>Patriarch</p></div></div></li>
+                                    </ul>
+                                </li>
+
+                                <li>
+                                    <div class="node-pair"><div class="person"><h3>Javeria</h3><p>Aunt (In-Law)</p></div><div class="person"><h3>Noman</h3><p>Uncle</p></div></div>
+                                    <p class="tag">SHABBIR IN-LAWS</p>
+                                    <ul>
+                                        <li><div class="person"><h3>Fahad</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>Fatima</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>Umar</h3><p>Cousin</p></div></li>
+                                        <li><div class="node-pair"><div class="person"><h3>Mrs. Shabbir</h3><p>Matriarch</p></div><div class="person"><h3>Q. Ghulam Shabbir</h3><p>Patriarch</p></div></div></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li>
+                            <p class="tag">GUL MUHAMMAD BRANCH</p>
+                            <div class="node-pair"><div class="person"><h3>W. Gul Muhammad</h3><p>In-Law</p></div><div class="person"><h3>Gul Muhammad</h3><p>G-Uncle</p></div></div>
+                            <ul>
+                                <li>
+                                    <div class="node-pair"><div class="person"><h3>Mrs. Shafkat</h3><p>In-Law</p></div><div class="person"><h3>Q. Shafkat-Ullah</h3><p>Cousin</p></div></div>
+                                    <ul>
+                                        <li><div class="person"><h3>Umar Hassan</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>M. Hassan</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>Ahmad Hassan</h3><p>Cousin</p></div></li>
+                                        <li><div class="person"><h3>Daughter</h3><p>Cousin (Shafkat's)</p></div></li>
+                                    </ul>
+                                </li>
+                                <li><div class="person"><h3>Q. I Inayat-Ullah</h3><p>Cousin</p></div></li>
+                                <li><div class="person"><h3>Q. Hidayat-Ullah</h3><p>Cousin</p></div></li>
+                                <li><div class="person"><h3>Q. Kifayat-Ullah</h3><p>Cousin</p></div></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const viewport = document.getElementById('viewport');
+        let scale = 0.2; let pos = { top: 0, left: 0, x: 0, y: 0 };
+        let isDragging = false;
+
+        function updateTransform(animate = false) {
+            canvas.style.transition = animate ? 'transform 0.2s ease-out' : 'none';
+            canvas.style.transform = `translate(${pos.left}px, ${pos.top}px) scale(${scale})`;
+        }
+
+        function adjustZoom(delta) { scale = Math.min(Math.max(0.05, scale + delta), 2); updateTransform(true); }
+        function resetView() { scale = 0.2; pos = { top: 0, left: 0 }; updateTransform(true); }
+
+        viewport.addEventListener('mousedown', (e) => { isDragging = true; pos.x = e.clientX; pos.y = e.clientY; document.body.style.cursor = 'grabbing'; });
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            pos.left += e.clientX - pos.x; pos.top += e.clientY - pos.y;
+            pos.x = e.clientX; pos.y = e.clientY; updateTransform(false);
+        });
+        window.addEventListener('mouseup', () => { isDragging = false; document.body.style.cursor = 'grab'; });
+        viewport.addEventListener('wheel', (e) => { e.preventDefault(); adjustZoom(e.deltaY > 0 ? -0.05 : 0.05); }, { passive: false });
+        updateTransform(false);
+    </script>
+</body>
+</html>
