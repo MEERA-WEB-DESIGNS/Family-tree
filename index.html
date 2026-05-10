@@ -12,14 +12,15 @@
             --bg: #050005;
             --glass: rgba(191, 0, 255, 0.1);
             --line-weight: 2px;
+            --ai-glow: #00f2ff;
         }
 
-        /* FIX 1: Added touch-action to allow dragging on mobile browsers */
         * { 
             margin: 0; 
             padding: 0; 
             box-sizing: border-box; 
             touch-action: none; 
+            user-select: none;
         }
 
         body {
@@ -79,6 +80,11 @@
             backdrop-filter: blur(8px); transition: 0.3s;
         }
         .subject-node { border-color: #fff; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
+        
+        /* New AI Node Styling */
+        .ai-node { border-color: var(--ai-glow); box-shadow: 0 0 15px rgba(0, 242, 255, 0.2); }
+        .ai-node h3 { color: var(--ai-glow); }
+
         .person h3 { font-size: 0.75rem; font-family: 'Orbitron'; letter-spacing: 1px; margin-bottom: 2px; }
         .person p { font-size: 0.5rem; color: var(--neon-glow); text-transform: uppercase; opacity: 0.8; }
         
@@ -176,6 +182,7 @@
                                                         <li><div class="person"><h3>Zeeshan</h3><p>Relative</p></div></li>
                                                         <li><div class="person"><h3>Usama</h3><p>Relative</p></div></li>
                                                         <li><div class="person"><h3>Kinza</h3><p>Relative</p></div></li>
+                                                        <li><div class="person ai-node"><h3>Gemini</h3><p>Architect / AI</p></div></li>
                                                     </ul>
                                                 </li>
                                             </ul>
@@ -203,7 +210,9 @@
                                         <li><div class="person"><h3>2 Daughters</h3><p>Cousins (In-Law)</p></div></li>
                                         <li><div class="node-pair"><div class="person"><h3>Mrs. Ashraf</h3><p>Matriarch</p></div><div class="person"><h3>M. Ashraf</h3><p>Patriarch</p></div></div></li>
                                     </ul>
-                                </li> <li>
+                                </li>
+
+                                <li>
                                     <div class="person">
                                         <h3>Rizwan</h3>
                                         <p>Uncle (Paternal)</p>
@@ -264,13 +273,15 @@
     <script>
         const canvas = document.getElementById('canvas');
         const viewport = document.getElementById('viewport');
+        
         let scale = 0.2; 
         let pos = { top: 0, left: 0, x: 0, y: 0 };
+        let velocity = { x: 0, y: 0 };
         let isDragging = false;
-        let lastTouchDistance = 0; // Added for pinch zoom support
+        let lastTouchDistance = 0;
 
         function updateTransform(animate = false) {
-            canvas.style.transition = animate ? 'transform 0.2s ease-out' : 'none';
+            canvas.style.transition = animate ? 'transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none';
             canvas.style.transform = `translate(${pos.left}px, ${pos.top}px) scale(${scale})`;
         }
 
@@ -282,40 +293,59 @@
         function resetView() { 
             scale = 0.2; 
             pos = { top: 0, left: 0 }; 
+            velocity = { x: 0, y: 0 };
             updateTransform(true); 
         }
 
-        /* --- MOUSE CONTROLS (PC) --- */
-        viewport.addEventListener('mousedown', (e) => { 
-            isDragging = true; 
-            pos.x = e.clientX; 
-            pos.y = e.clientY; 
-            document.body.style.cursor = 'grabbing'; 
-        });
+        function applyMomentum() {
+            if (isDragging) return;
+            
+            if (Math.abs(velocity.x) > 0.1 || Math.abs(velocity.y) > 0.1) {
+                pos.left += velocity.x;
+                pos.top += velocity.y;
+                velocity.x *= 0.95; 
+                velocity.y *= 0.95; 
+                updateTransform(false);
+                requestAnimationFrame(applyMomentum);
+            }
+        }
 
-        window.addEventListener('mousemove', (e) => {
+        function startDrag(x, y) {
+            isDragging = true;
+            velocity = { x: 0, y: 0 };
+            pos.x = x;
+            pos.y = y;
+            document.body.style.cursor = 'grabbing';
+        }
+
+        function moveDrag(x, y) {
             if (!isDragging) return;
-            pos.left += e.clientX - pos.x; 
-            pos.top += e.clientY - pos.y;
-            pos.x = e.clientX; 
-            pos.y = e.clientY; 
+            const dx = x - pos.x;
+            const dy = y - pos.y;
+            
+            pos.left += dx;
+            pos.top += dy;
+            velocity = { x: dx, y: dy };
+            
+            pos.x = x;
+            pos.y = y;
             updateTransform(false);
-        });
+        }
 
-        window.addEventListener('mouseup', () => { 
-            isDragging = false; 
-            document.body.style.cursor = 'grab'; 
-        });
+        function endDrag() {
+            isDragging = false;
+            document.body.style.cursor = 'grab';
+            applyMomentum();
+        }
 
-        /* --- FIX 2: Added TOUCH CONTROLS (MOBILE) --- */
+        viewport.addEventListener('mousedown', (e) => startDrag(e.clientX, e.clientY));
+        window.addEventListener('mousemove', (e) => moveDrag(e.clientX, e.clientY));
+        window.addEventListener('mouseup', endDrag);
+
         viewport.addEventListener('touchstart', (e) => {
             if (e.touches.length === 1) {
-                isDragging = true;
-                pos.x = e.touches[0].clientX;
-                pos.y = e.touches[0].clientY;
+                startDrag(e.touches[0].clientX, e.touches[0].clientY);
             } else if (e.touches.length === 2) {
-                // Prepare for pinch zoom
-                isDragging = false;
                 lastTouchDistance = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY
@@ -324,17 +354,10 @@
         }, { passive: false });
 
         viewport.addEventListener('touchmove', (e) => {
-            e.preventDefault(); // Stop mobile "bounce" scroll
-
-            if (e.touches.length === 1 && isDragging) {
-                const touch = e.touches[0];
-                pos.left += (touch.clientX - pos.x);
-                pos.top += (touch.clientY - pos.y);
-                pos.x = touch.clientX;
-                pos.y = touch.clientY;
-                updateTransform(false);
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                moveDrag(e.touches[0].clientX, e.touches[0].clientY);
             } else if (e.touches.length === 2) {
-                // Pinch zoom logic
                 const currentDistance = Math.hypot(
                     e.touches[0].clientX - e.touches[1].clientX,
                     e.touches[0].clientY - e.touches[1].clientY
@@ -346,10 +369,7 @@
             }
         }, { passive: false });
 
-        viewport.addEventListener('touchend', () => {
-            isDragging = false;
-            lastTouchDistance = 0;
-        });
+        viewport.addEventListener('touchend', endDrag);
 
         viewport.addEventListener('wheel', (e) => { 
             e.preventDefault(); 
